@@ -16,6 +16,7 @@ type User = {
 type AuthContextData = {
   user: User | null;
   signInUrl: string;
+  signOut: () => void;
 }
 
 type AuthResponse = {
@@ -44,8 +45,27 @@ export function AuthProvider(props: AuthPorvider)
     const {token, user} = response.data;
 
     localStorage.setItem('@dowile:token', token);
+    api.defaults.headers.common.authorization = `Bearer ${token}`; 
     setUser(user);
   }
+
+  function signOut(){
+    setUser(null);
+    localStorage.removeItem('@dowile:token');
+  }
+
+  useEffect(()=>{
+    const token = localStorage.getItem('@dowile:token')
+
+    if(token){
+      api.defaults.headers.common.authorization = `Bearer ${token}`; 
+
+      api.get<User>('profile').then(response =>{
+          setUser(response.data);
+      })
+    }
+
+  }, [])
   
   useEffect(()=>{
     const url = window.location.href;
@@ -54,7 +74,7 @@ export function AuthProvider(props: AuthPorvider)
     if(hasGithubCode){
       const [urlWithoutCode, githubCode] = url.split('?code=');
 
-      //console.log({urlWithoutCode, githubCode});
+      
 
       window.history.pushState({}, '', urlWithoutCode );
 
@@ -63,7 +83,7 @@ export function AuthProvider(props: AuthPorvider)
   })
 
   return(
-    <AuthContext.Provider value={{signInUrl, user}}> 
+    <AuthContext.Provider value={{signInUrl, user, signOut}}> 
       {props.children}
     </AuthContext.Provider>
   );
